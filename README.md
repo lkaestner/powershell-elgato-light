@@ -13,7 +13,7 @@ Control Elgato Key Light, Ring Light and Light Strip devices from PowerShell
 
 ## Authors & Affiliations
 * Developed by **Lukas Kästner**
-* this program is not affiliated or endorsemed to/by Elgato/Corsair
+* This program is not affiliated or endorsed to/by Elgato/Corsair.
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
