@@ -24,43 +24,34 @@ function Set-ElgatoLight {
     $Body = [ordered]@{}
 	$Body.NumberOfLights = 1
 	$Body.Lights = @(@{})
-	$Body.Lights[0].On = ($Brightness -lt 3) ? 0 : 1
 	
-	if ($Brightness -ge 3) {
+	if ($Brightness -lt 3) {
+		$Body.Lights[0].On = 0
+	} else {
+		$Body.Lights[0].On = 1
 		$Body.Lights[0].Brightness = $Brightness
-	}
-	if ($PSBoundParameters.ContainsKey('Temperature')) {
-		if ($Hostname -like "*Light-Strip*") {
-			$Saturation = (100 / (2900 - 3850)) * ($Temperature - 3850) -as [int]
-			$Body.Lights[0].Saturation = $Saturation
-			$Body.Lights[0].Hue        = 30
-		} else {
-			$Body.Lights[0].Temperature = 1000000 / $Temperature -as [int]
+		
+		if ($PSBoundParameters.ContainsKey('Temperature')) {
+			if ($Hostname -like "*Light-Strip*") {
+				$Saturation = (100 / (2900 - 3850)) * ($Temperature - 3850) -as [int]
+				$Body.Lights[0].Saturation = $Saturation
+				$Body.Lights[0].Hue        = 30
+			} else {
+				$Body.Lights[0].Temperature = 1000000 / $Temperature -as [int]
+			}
 		}
 	}
 	$BodyJson = $Body | ConvertTo-Json
 	
 	foreach ($SingleHost in $Hostname) {
-		Write-Output "[*] Setting ${SingleHost} to ${Brightness}% at ${Temperature}K"
+		$HostnamePadded = $SingleHost.PadRight(26)
+		Write-Host "[*] ${HostnamePadded} - setting ${Brightness}% at ${Temperature}K"
 		try {
-			$RestResponse = Invoke-RestMethod -Method "Put" -Uri "http://${SingleHost}:9123/elgato/lights" -Headers $RestHeaders -Body $BodyJson -TimeoutSec $NetworkTimeoutSec
+			$RestResponse = Invoke-RestMethod -Method "Put" -Uri "http://${SingleHost}:9123/elgato/lights" -Headers $RestHeaders -Body $BodyJson -NoProxy -TimeoutSec $NetworkTimeoutSec
 		} catch {
-			Write-Warning "REST-Call failed."
+			Write-Host "[!] ${HostnamePadded} - REST-Call failed." -ForegroundColor 'red'
 			Probe-ElgatoLight $SingleHost
 		}
-	}
-}
-
-# Get and print the Settings of the provided device.
-function Get-ElgatoLight {
-    param (
-        [parameter(mandatory)][string] $Hostname
-    )
-	try {
-		Invoke-RestMethod -Method "Get" -Uri "http://${Hostname}:9123/elgato/lights" -Headers $RestHeaders -TimeoutSec $NetworkTimeoutSec
-	} catch {
-		Write-Warning "REST-Call failed."
-		Probe-ElgatoLight $SingleHost
 	}
 }
 
@@ -69,9 +60,10 @@ function Probe-ElgatoLight {
 	param (
         [parameter(mandatory)][string] $Hostname
     )
+	$HostnamePadded = $Hostname.PadRight(26)
 	if (Test-Connection -Quiet -Ping -Count 1 -TimeoutSeconds $NetworkTimeoutSec -TargetName $Hostname) {
-		Write-Output "Device responds to ping: $Hostname"
+		Write-Host "[i] ${HostnamePadded} - Device responds to ping" -ForegroundColor 'yellow'
 	} else {
-		Write-Warning "Could not name-resolve or ping the device: $Hostname"
+		Write-Host "[!] ${HostnamePadded} - Could not name-resolve or ping the device" -ForegroundColor 'red'
 	}
 }
